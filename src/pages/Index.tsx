@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Package as PackageIcon, Truck, Target, BarChart3 } from 'lucide-react';
 import { PackageForm } from '@/components/logistics/PackageForm';
 import { PackageList } from '@/components/logistics/PackageList';
+import { PackageImport } from '@/components/logistics/PackageImport';
 import { ContainerSelector } from '@/components/logistics/ContainerSelector';
 import { LoadingStats } from '@/components/logistics/LoadingStats';
 import { LoadingVisualization } from '@/components/logistics/LoadingVisualization';
@@ -31,6 +32,10 @@ const Index = () => {
 
   const handleAddPackage = (pkg: Package) => {
     setPackages(prev => [...prev, pkg]);
+  };
+
+  const handleImportPackages = (importedPackages: Package[]) => {
+    setPackages(prev => [...prev, ...importedPackages]);
   };
 
   const handleRemovePackage = (id: string) => {
@@ -82,6 +87,7 @@ const Index = () => {
             </div>
             
             <PackageForm onAddPackage={handleAddPackage} />
+            <PackageImport onImportPackages={handleImportPackages} />
             <PackageList packages={packages} onRemovePackage={handleRemovePackage} />
           </div>
 
