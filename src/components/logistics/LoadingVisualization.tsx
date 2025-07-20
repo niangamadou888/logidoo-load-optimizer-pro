@@ -1,11 +1,9 @@
-import { useState, Suspense } from 'react';
-import { Eye, Maximize2 } from 'lucide-react';
+import { useState } from 'react';
+import { Eye, Maximize2, Box, Layers } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Package, Container } from '@/types/logistics';
 import { calculatePackageVolume, calculateContainerVolume } from '@/lib/logistics';
-import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Box } from '@react-three/drei';
 
 interface LoadingVisualizationProps {
   packages: Package[];
@@ -46,78 +44,76 @@ export const LoadingVisualization = ({ packages, container }: LoadingVisualizati
     return colors[index % colors.length];
   };
 
-  // Convert HSL to hex for Three.js
-  const getPackageColorHex = (type: string) => {
-    const colorMap: { [key: string]: string } = {
-      'hsl(var(--primary))': '#0ea5e9',
-      'hsl(var(--secondary))': '#64748b',
-      'hsl(var(--accent))': '#8b5cf6',
-      'hsl(var(--logistics-blue))': '#3b82f6',
-      'hsl(var(--efficiency-green))': '#10b981',
-      'hsl(var(--transport-orange))': '#f59e0b'
-    };
-    const hslColor = getPackageColor(type);
-    return colorMap[hslColor] || '#0ea5e9';
-  };
-
-  // Component 3D Scene
-  const Scene3D = () => {
-    // Convert cm to meters and scale appropriately
-    const containerScale = {
-      length: container.length / 100,
-      width: container.width / 100, 
-      height: container.height / 100
-    };
-
+  // Simple isometric 3D-like visualization using CSS transforms
+  const Simple3DView = () => {
     return (
-      <>
-        {/* Container outline */}
-        <Box
-          args={[containerScale.length, containerScale.height, containerScale.width]}
-          position={[0, 0, 0]}
+      <div className="relative h-96 w-full overflow-hidden bg-gradient-to-br from-muted/30 to-muted/60 rounded-lg border-2 border-dashed border-primary/30">
+        {/* Container in isometric view */}
+        <div 
+          className="absolute border-2 border-primary/40 bg-background/20"
+          style={{
+            left: '20%',
+            top: '20%',
+            width: '300px',
+            height: '200px',
+            transform: 'rotateX(45deg) rotateY(-15deg)',
+            transformStyle: 'preserve-3d'
+          }}
         >
-          <meshBasicMaterial color="#e2e8f0" transparent opacity={0.2} wireframe />
-        </Box>
-        
-        {/* Container floor */}
-        <Box
-          args={[containerScale.length, 0.02, containerScale.width]}
-          position={[0, -containerScale.height / 2, 0]}
-        >
-          <meshStandardMaterial color="#94a3b8" />
-        </Box>
-
-        {/* Packages */}
-        {packages.slice(0, 12).map((pkg, index) => {
-          const pkgScale = {
-            length: pkg.length / 100,
-            width: pkg.width / 100,
-            height: pkg.height / 100
-          };
+          {/* Container floor */}
+          <div 
+            className="absolute bottom-0 left-0 w-full h-2 bg-muted border-t-2 border-primary/40"
+            style={{ transform: 'translateZ(-10px)' }}
+          />
           
-          // Simple positioning algorithm
-          const cols = 3;
-          const rows = 4;
-          const x = ((index % cols) - (cols - 1) / 2) * (containerScale.length / cols);
-          const z = (Math.floor(index / cols) - (rows - 1) / 2) * (containerScale.width / rows);
-          const y = -containerScale.height / 2 + pkgScale.height / 2 + 0.01;
-
-           return (
-             <Box 
-               key={pkg.id} 
-               args={[pkgScale.length, pkgScale.height, pkgScale.width]}
-               position={[x, y, z]}
-             >
-               <meshStandardMaterial color={getPackageColorHex(pkg.type)} />
-             </Box>
-           );
-        })}
-
-        {/* Lighting */}
-        <ambientLight intensity={0.6} />
-        <directionalLight position={[5, 5, 5]} intensity={0.8} />
-        <OrbitControls enablePan={true} enableZoom={true} enableRotate={true} />
-      </>
+          {/* Packages in isometric style */}
+          {packages.slice(0, 9).map((pkg, index) => {
+            const row = Math.floor(index / 3);
+            const col = index % 3;
+            const x = col * 80 + 20;
+            const y = row * 50 + 20;
+            
+            return (
+              <div
+                key={pkg.id}
+                className="absolute rounded-sm border border-white/50 flex items-center justify-center text-xs font-medium text-white shadow-lg"
+                style={{
+                  backgroundColor: getPackageColor(pkg.type),
+                  left: `${x}px`,
+                  top: `${y}px`,
+                  width: '60px',
+                  height: '40px',
+                  transform: 'translateZ(5px)',
+                  opacity: 0.9
+                }}
+              >
+                {pkg.quantity > 1 ? `${pkg.quantity}x` : '1'}
+              </div>
+            );
+          })}
+          
+          {packages.length > 9 && (
+            <div 
+              className="absolute bottom-2 right-2 bg-black/80 text-white text-xs px-2 py-1 rounded"
+              style={{ transform: 'translateZ(10px)' }}
+            >
+              +{packages.length - 9} colis
+            </div>
+          )}
+        </div>
+        
+        {/* 3D axes indicators */}
+        <div className="absolute bottom-4 right-4 flex flex-col text-xs text-muted-foreground">
+          <div className="flex items-center gap-1">
+            <Box className="h-3 w-3" />
+            <span>Vue isométrique</span>
+          </div>
+          <div className="flex items-center gap-1 mt-1">
+            <Layers className="h-3 w-3" />
+            <span>Remplissage: {fillPercentage.toFixed(1)}%</span>
+          </div>
+        </div>
+      </div>
     );
   };
 
@@ -160,15 +156,9 @@ export const LoadingVisualization = ({ packages, container }: LoadingVisualizati
 
         {/* Conditional View Rendering */}
         {view === '3d' ? (
-          // 3D Visualization
+          // Simple 3D-like visualization
           packages.length > 0 ? (
-            <div className="h-96 w-full">
-              <Suspense fallback={<div className="flex items-center justify-center h-full text-muted-foreground">Chargement de la vue 3D...</div>}>
-                <Canvas camera={{ position: [3, 3, 3], fov: 50 }}>
-                  <Scene3D />
-                </Canvas>
-              </Suspense>
-            </div>
+            <Simple3DView />
           ) : (
             <div className="text-center py-8 text-muted-foreground">
               <Maximize2 className="h-8 w-8 mx-auto mb-2 opacity-50" />
