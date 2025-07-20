@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Package, Container } from '@/types/logistics';
 import { calculatePackageVolume, calculateContainerVolume } from '@/lib/logistics';
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Box, Text } from '@react-three/drei';
+import { OrbitControls, Box } from '@react-three/drei';
 
 interface LoadingVisualizationProps {
   packages: Package[];
@@ -102,24 +102,15 @@ export const LoadingVisualization = ({ packages, container }: LoadingVisualizati
           const z = (Math.floor(index / cols) - (rows - 1) / 2) * (containerScale.width / rows);
           const y = -containerScale.height / 2 + pkgScale.height / 2 + 0.01;
 
-          return (
-            <group key={pkg.id} position={[x, y, z]}>
-              <Box args={[pkgScale.length, pkgScale.height, pkgScale.width]}>
-                <meshStandardMaterial color={getPackageColorHex(pkg.type)} />
-              </Box>
-              {pkg.quantity > 1 && (
-                <Text
-                  position={[0, pkgScale.height / 2 + 0.05, 0]}
-                  fontSize={0.1}
-                  color="#ffffff"
-                  anchorX="center"
-                  anchorY="middle"
-                >
-                  {pkg.quantity}x
-                </Text>
-              )}
-            </group>
-          );
+           return (
+             <Box 
+               key={pkg.id} 
+               args={[pkgScale.length, pkgScale.height, pkgScale.width]}
+               position={[x, y, z]}
+             >
+               <meshStandardMaterial color={getPackageColorHex(pkg.type)} />
+             </Box>
+           );
         })}
 
         {/* Lighting */}
